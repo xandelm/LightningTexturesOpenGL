@@ -15,6 +15,7 @@ GLfloat angle, fAspect, rotX, rotY, obsZ;
 GLuint idTextura;
 // AUX_RGBImageRec *imagemTextura;
 unsigned char *imagemTextura;
+// cchar *nomeImagem = "imagem.bmp";
 
 // Função responsável pela especificação dos parâmetros de iluminação
 void DefineIluminacao(void)
@@ -23,6 +24,7 @@ void DefineIluminacao(void)
     GLfloat luzDifusa[4] = {0.7, 0.7, 0.7, 1.0};    // "cor"
     GLfloat luzEspecular[4] = {1.0, 1.0, 1.0, 1.0}; // "brilho"
     GLfloat posicaoLuz[4] = {0.0, -40.0, 0.0, 1.0};
+    GLfloat novaLuz[4] = {0.0, 40.0, 0.0, 1.0};
 
     // Capacidade de brilho do material
     GLfloat especularidade[4] = {1.0, 1.0, 1.0, 1.0};
@@ -42,6 +44,11 @@ void DefineIluminacao(void)
     glLightfv(GL_LIGHT0, GL_SPECULAR, luzEspecular);
     glLightfv(GL_LIGHT0, GL_POSITION, posicaoLuz);
 
+    glLightfv(GL_LIGHT1, GL_AMBIENT, luzAmbiente);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, luzDifusa);
+    glLightfv(GL_LIGHT1, GL_SPECULAR, luzEspecular);
+    glLightfv(GL_LIGHT1, GL_POSITION, novaLuz);
+
     // Habilita o modelo de colorização de Gouraud
     glShadeModel(GL_SMOOTH);
 }
@@ -52,16 +59,17 @@ void Desenha(void)
     // Limpa a janela e o depth buffer
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Desenha um cubo no qual a textura é aplicada
+    glColor3f(0.0f, 1.0f, 1.0f);
+    //  Desenha um cubo no qual a textura é aplicada
     glBegin(GL_QUADS);
     // Face frontal
-    glTexCoord2f(0.0f, 0.0f);
+    glTexCoord2f(-1.0f, -1.0f);
     glVertex3f(-1.0f, -1.0f, 1.0f);
-    glTexCoord2f(1.0f, 0.0f);
+    glTexCoord2f(1.0f, -1.0f);
     glVertex3f(1.0f, -1.0f, 1.0f);
     glTexCoord2f(1.0f, 1.0f);
     glVertex3f(1.0f, 1.0f, 1.0f);
-    glTexCoord2f(0.0f, 1.0f);
+    glTexCoord2f(-1.0f, 1.0f);
     glVertex3f(-1.0f, 1.0f, 1.0f);
     // Face posterior
     glTexCoord2f(1.0f, 0.0f);
@@ -127,6 +135,20 @@ void PosicionaObservador(void)
     glRotatef(rotY, 0, 1, 0);
 }
 
+void CarregaTextura(char *nomeImagem)
+{
+    int sizeX, sizeY, comp;
+    unsigned char *imagemTextura = leTextura(nomeImagem, sizeX, sizeY, comp);
+    glGenTextures(1, &idTextura);
+    glBindTexture(GL_TEXTURE_2D, idTextura);
+    glTexImage2D(GL_TEXTURE_2D, 0, 3, sizeX,
+                 sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE,
+                 imagemTextura);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    glEnable(GL_TEXTURE_2D);
+}
 // Inicializa parâmetros de rendering
 void Inicializa(void)
 {
@@ -137,9 +159,9 @@ void Inicializa(void)
     glEnable(GL_COLOR_MATERIAL);
     // Habilita o uso de iluminação
     glEnable(GL_LIGHTING);
-    // Habilita a luz de número 0
     glEnable(GL_LIGHT0);
-    // Habilita o depth-buffering
+    glEnable(GL_LIGHT1);
+    //      Habilita o depth-buffering
     glEnable(GL_DEPTH_TEST);
 
     // Inicializa a variável que especifica o ângulo da projeção
@@ -151,19 +173,9 @@ void Inicializa(void)
     rotX = 30;
     rotY = 0;
     obsZ = 10;
-
+    // o vermelho virou preto e o marrom virou verde
     // Comandos de inicialização para textura
-    // imagemTextura = LoadBMP("imagem.bmp");
-    int sizeX, sizeY, comp;
-    unsigned char *imagemTextura = leTextura("imagem.bmp", sizeX, sizeY, comp);
-    glGenTextures(1, &idTextura);
-    glBindTexture(GL_TEXTURE_2D, idTextura);
-    glTexImage2D(GL_TEXTURE_2D, 0, 3, sizeX,
-                 sizeY, 0, GL_RGB, GL_UNSIGNED_BYTE,
-                 imagemTextura);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glEnable(GL_TEXTURE_2D);
+    CarregaTextura("imagem.bmp");
 }
 
 // Função usada para especificar o volume de visualização
@@ -221,16 +233,16 @@ void TeclasEspeciais(int key, int x, int y)
     switch (key)
     {
     case GLUT_KEY_LEFT:
-        rotY--;
+        rotY -= 5;
         break;
     case GLUT_KEY_RIGHT:
-        rotY++;
+        rotY += 5;
         break;
     case GLUT_KEY_UP:
-        rotX++;
+        rotX += 5;
         break;
     case GLUT_KEY_DOWN:
-        rotX--;
+        rotX -= 5;
         break;
     case GLUT_KEY_HOME:
         obsZ++;
@@ -244,6 +256,14 @@ void TeclasEspeciais(int key, int x, int y)
         obsZ = 10;
         angle = 50;
         EspecificaParametrosVisualizacao();
+        break;
+
+    case GLUT_KEY_F1:
+        CarregaTextura("imagem.bmp");
+        break;
+
+    case GLUT_KEY_F2:
+        CarregaTextura("leao.bmp");
         break;
     }
     PosicionaObservador();
